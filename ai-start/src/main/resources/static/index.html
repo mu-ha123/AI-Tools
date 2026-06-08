@@ -1,0 +1,93 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 工具箱</title>
+    <style>
+        :root {
+            --bg: #0f1419;
+            --card: #1a2332;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --text: #e7ecf3;
+            --muted: #94a3b8;
+            --border: #2d3a4f;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: "Segoe UI", system-ui, sans-serif;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f35 100%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 48px 24px;
+        }
+        .container { max-width: 960px; margin: 0 auto; }
+        header { text-align: center; margin-bottom: 48px; }
+        header h1 { font-size: 2.2rem; margin-bottom: 8px; }
+        header p { color: var(--muted); }
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .tool-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            transition: transform 0.2s, border-color 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        .tool-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+        }
+        .tool-card h2 { font-size: 1.25rem; margin-bottom: 8px; }
+        .tool-card p { color: var(--muted); font-size: 0.95rem; line-height: 1.5; }
+        .badge {
+            display: inline-block;
+            margin-top: 16px;
+            padding: 4px 10px;
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--accent);
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AI 工具箱</h1>
+            <p>选择下方工具，每个工具均支持 AI 智能辅助</p>
+        </header>
+        <div class="tools-grid" id="toolsGrid"></div>
+    </div>
+    <script>
+        fetch('/api/tools')
+            .then(res => res.json())
+            .then(result => {
+                const grid = document.getElementById('toolsGrid');
+                if (!result.success) {
+                    grid.innerHTML = '<p>加载工具列表失败</p>';
+                    return;
+                }
+                result.data.forEach(tool => {
+                    const card = document.createElement('a');
+                    card.className = 'tool-card';
+                    card.href = tool.route;
+                    card.innerHTML = `
+                        <h2>${tool.name}</h2>
+                        <p>${tool.description}</p>
+                        ${tool.aiEnabled ? '<span class="badge">AI 已接入</span>' : ''}
+                    `;
+                    grid.appendChild(card);
+                });
+            });
+    </script>
+</body>
+</html>

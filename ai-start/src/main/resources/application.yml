@@ -1,0 +1,51 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: ai-toolbox
+  autoconfigure:
+    exclude:
+      - dev.langchain4j.community.dashscope.spring.AutoConfig
+  datasource:
+    url: jdbc:mysql://localhost:3306/tools?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&createDatabaseIfNotExist=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: 123456
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 5000
+      idle-timeout: 300000
+      max-lifetime: 600000
+      keepalive-time: 30000
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  h2:
+    console:
+      enabled: false
+
+ai:
+  provider: dashscope
+
+langchain4j:
+  community:
+    dashscope:
+      chat-model:
+        api-key: sk-1160f7c74972417bad3811d5940afa8f
+        model-name: qwen-plus
+        temperature: 0.3
+
+logging:
+  level:
+    root: INFO
+    com.ai.toolbox: INFO

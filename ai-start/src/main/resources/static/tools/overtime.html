@@ -1,0 +1,480 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加班计算器 - AI 工具箱</title>
+    <style>
+        :root {
+            --bg: #0f1419; --card: #1a2332; --accent: #3b82f6; --accent-hover: #2563eb;
+            --text: #e7ecf3; --muted: #94a3b8; --border: #2d3a4f; --success: #22c55e;
+            --leave-red: rgba(239,68,68,0.2); --leave-red-text: #fca5a5;
+            --half-yellow: rgba(234,179,8,0.2); --half-yellow-text: #fde68a;
+            --saturday-bg: rgba(59,130,246,0.1);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        .layout { max-width: 1100px; margin: 0 auto; padding: 24px; }
+        .nav { margin-bottom: 24px; }
+        .nav a { color: var(--accent); text-decoration: none; }
+        h1 { font-size: 1.8rem; margin-bottom: 6px; }
+        .subtitle { color: var(--muted); margin-bottom: 24px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .card h2 { font-size: 1.1rem; margin-bottom: 16px; }
+        label { display: block; color: var(--muted); font-size: 0.85rem; margin-bottom: 4px; }
+        input, select, textarea {
+            width: 100%; padding: 10px 12px; margin-bottom: 12px;
+            background: #0d1117; border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+        }
+        input[type="file"] { padding: 8px; }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        button {
+            padding: 10px 18px; background: var(--accent); color: white; border: none;
+            border-radius: 8px; cursor: pointer; font-size: 0.95rem;
+        }
+        button:hover { background: var(--accent-hover); }
+        button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        button.secondary:hover { border-color: var(--accent); }
+        button.small { padding: 4px 10px; font-size: 0.8rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { color: var(--muted); font-weight: 500; }
+        .summary-box { background: rgba(59,130,246,0.1); border-radius: 8px; padding: 16px; margin-top: 12px; }
+        .summary-box strong { color: var(--accent); font-size: 1.3rem; }
+        .ai-result { background: #0d1117; border-radius: 8px; padding: 12px; margin-top: 12px; white-space: pre-wrap; line-height: 1.6; }
+        .msg { padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 0.9rem; }
+        .msg.error { background: rgba(239,68,68,0.15); color: #fca5a5; }
+        .msg.success { background: rgba(34,197,94,0.15); color: #86efac; }
+        .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+        .row-leave { outline: 2px solid var(--leave-red-text); outline-offset: -2px; }
+        .row-leave td { color: var(--leave-red-text); }
+        .row-half { outline: 2px solid var(--half-yellow-text); outline-offset: -2px; }
+        .row-half td { color: var(--half-yellow-text); }
+        .row-saturday { background: var(--saturday-bg); }
+
+        .legend { display: flex; gap: 16px; margin-bottom: 12px; font-size: 0.8rem; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+        .legend-dot.red { background: var(--leave-red); border: 1px solid var(--leave-red-text); }
+        .legend-dot.yellow { background: var(--half-yellow); border: 1px solid var(--half-yellow-text); }
+
+        .view-toggle { display: flex; gap: 0; margin-bottom: 12px; }
+        .view-toggle button {
+            border-radius: 0; padding: 8px 16px; font-size: 0.85rem;
+            background: transparent; border: 1px solid var(--border); color: var(--muted);
+        }
+        .view-toggle button:first-child { border-radius: 8px 0 0 8px; }
+        .view-toggle button:last-child { border-radius: 0 8px 8px 0; }
+        .view-toggle button.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .calendar-header { text-align: center; font-weight: 500; color: var(--muted); padding: 8px 0; font-size: 0.85rem; }
+        .calendar-day {
+            aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; cursor: pointer; gap: 2px;
+            min-height: 70px; padding: 4px;
+        }
+        .calendar-day:hover { border-color: var(--accent); }
+        .calendar-day.empty { border-color: transparent; cursor: default; }
+        .calendar-day .day-num { font-weight: 500; }
+        .calendar-day .day-info { font-size: 0.7rem; color: var(--muted); }
+        .calendar-day.has-record { border-color: var(--accent); }
+        .calendar-day.leave { border-color: var(--leave-red-text); }
+        .calendar-day.leave .day-num { color: var(--leave-red-text); }
+        .calendar-day.leave .day-info { color: var(--leave-red-text); }
+        .calendar-day.half { border-color: var(--half-yellow-text); }
+        .calendar-day.half .day-num { color: var(--half-yellow-text); }
+        .calendar-day.half .day-info { color: var(--half-yellow-text); }
+        .calendar-day.saturday { background: var(--saturday-bg); }
+        .calendar-day.today { border-color: var(--success); border-width: 2px; }
+    </style>
+</head>
+<body>
+<div class="layout">
+    <div class="nav"><a href="/">← 返回工具箱</a></div>
+    <h1>加班计算器</h1>
+    <p class="subtitle">配置上下班规则，录入打卡记录，自动统计每日与每月加班时长</p>
+    <div id="message"></div>
+
+    <div class="grid">
+        <div class="card">
+            <h2>工作规则配置</h2>
+            <div class="row">
+                <div><label>标准上班时间</label><input type="time" id="workStartTime" value="09:00"></div>
+                <div><label>标准下班时间</label><input type="time" id="workEndTime" value="18:00"></div>
+            </div>
+            <div class="row">
+                <div><label>午休开始</label><input type="time" id="lunchStartTime" value="12:00"></div>
+                <div><label>午休结束</label><input type="time" id="lunchEndTime" value="13:00"></div>
+            </div>
+            <div class="row">
+                <div><label>标准工时（分钟）</label><input type="number" id="standardWorkMinutes" value="480" min="1"></div>
+                <div>
+                    <label>计算模式</label>
+                    <select id="calculationMode">
+                        <option value="EXCLUDE_STANDARD">不包含标准工时（仅早到+晚走）</option>
+                        <option value="INCLUDE_STANDARD">包含标准工时（总时长-标准工时）</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="saveSettings()">保存配置</button>
+        </div>
+
+        <div class="card">
+            <h2>录入打卡</h2>
+            <div class="row">
+                <div><label>日期</label><input type="date" id="workDate"></div>
+                <div></div>
+            </div>
+            <div class="row">
+                <div><label>实际上班</label><input type="time" id="clockIn" value="09:00"></div>
+                <div><label>实际下班</label><input type="time" id="clockOut" value="20:00"></div>
+            </div>
+            <div class="actions">
+                <button onclick="saveRecord()">保存打卡</button>
+            </div>
+            <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+            <label>AI 智能录入（自然语言）</label>
+            <textarea id="aiText" rows="2" placeholder="例如：6月5日早上8点半上班，晚上9点下班"></textarea>
+            <button class="secondary" onclick="parseByAi()">AI 解析并填入</button>
+            <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+            <label>Excel 批量导入</label>
+            <input type="file" id="excelFile" accept=".xlsx,.xls" style="margin-bottom:8px">
+            <button class="secondary" onclick="importExcel()">上传并导入</button>
+            <div id="importResult" style="margin-top:8px;font-size:0.85rem;color:var(--muted)"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>月度汇总</h2>
+        <div class="row" style="max-width:400px">
+            <div><label>年份</label><input type="number" id="summaryYear" value="2026"></div>
+            <div><label>月份</label><input type="number" id="summaryMonth" value="6" min="1" max="12"></div>
+        </div>
+        <div class="actions" style="margin-bottom:16px">
+            <button onclick="loadSummary()">查询汇总</button>
+            <button class="secondary" onclick="analyzeByAi()">AI 分析月报</button>
+        </div>
+
+        <div class="legend">
+            <span class="legend-item"><span class="legend-dot red"></span> 请假</span>
+            <span class="legend-item"><span class="legend-dot yellow"></span> 半天请假</span>
+        </div>
+
+        <div class="view-toggle">
+            <button id="viewListBtn" class="active" onclick="switchView('list')">列表视图</button>
+            <button id="viewCalBtn" onclick="switchView('calendar')">日期视图</button>
+        </div>
+
+        <div class="summary-box" id="summaryTotal" style="display:none">
+            本月总加班：<strong id="totalText">-</strong>
+        </div>
+        <div id="aiAnalysis" class="ai-result" style="display:none"></div>
+
+        <div id="listView">
+            <table>
+                <thead>
+                    <tr>
+                        <th>日期</th><th>星期</th><th>上班</th><th>下班</th><th>实际工时</th><th>早到加班</th><th>晚走加班</th><th>日加班</th><th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="summaryBody"></tbody>
+            </table>
+        </div>
+
+        <div id="calendarView" style="display:none">
+            <div class="calendar" id="calendarGrid"></div>
+        </div>
+    </div>
+</div>
+<script>
+    const today = new Date();
+    document.getElementById('workDate').value = today.toISOString().slice(0, 10);
+    document.getElementById('summaryYear').value = today.getFullYear();
+    document.getElementById('summaryMonth').value = today.getMonth() + 1;
+    const DAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
+
+    function showMsg(text, type) {
+        const el = document.getElementById('message');
+        el.className = 'msg ' + type;
+        el.textContent = text;
+        setTimeout(() => { el.className = ''; el.textContent = ''; }, 4000);
+    }
+
+    async function api(url, options) {
+        const res = await fetch(url, options);
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || '请求失败');
+        return data.data;
+    }
+
+    function formatMin(m) {
+        if (m == null || m <= 0) return '-';
+        const h = Math.floor(m / 60), r = m % 60;
+        return h ? (r ? h + '小时' + r + '分钟' : h + '小时') : r + '分钟';
+    }
+
+    let currentRecords = [];
+
+    async function loadSettings() {
+        try {
+            const s = await api('/api/overtime/settings');
+            document.getElementById('workStartTime').value = s.workStartTime;
+            document.getElementById('workEndTime').value = s.workEndTime;
+            document.getElementById('lunchStartTime').value = s.lunchStartTime || '';
+            document.getElementById('lunchEndTime').value = s.lunchEndTime || '';
+            document.getElementById('standardWorkMinutes').value = s.standardWorkMinutes;
+            document.getElementById('calculationMode').value = s.calculationMode;
+        } catch (e) { console.warn(e); }
+    }
+
+    async function saveSettings() {
+        try {
+            const body = {
+                workStartTime: document.getElementById('workStartTime').value,
+                workEndTime: document.getElementById('workEndTime').value,
+                lunchStartTime: document.getElementById('lunchStartTime').value || null,
+                lunchEndTime: document.getElementById('lunchEndTime').value || null,
+                standardWorkMinutes: parseInt(document.getElementById('standardWorkMinutes').value),
+                calculationMode: document.getElementById('calculationMode').value
+            };
+            await api('/api/overtime/settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+            showMsg('配置已保存', 'success');
+        } catch (e) { showMsg(e.message, 'error'); }
+    }
+
+    async function saveRecord() {
+        try {
+            const body = {
+                workDate: document.getElementById('workDate').value,
+                clockIn: document.getElementById('clockIn').value,
+                clockOut: document.getElementById('clockOut').value
+            };
+            const r = await api('/api/overtime/records', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+            showMsg('打卡已保存，当日加班 ' + formatMin(r.overtimeMinutes), 'success');
+            loadSummary();
+        } catch (e) { showMsg(e.message, 'error'); }
+    }
+
+    async function parseByAi() {
+        try {
+            const text = document.getElementById('aiText').value.trim();
+            if (!text) { showMsg('请输入自然语言描述', 'error'); return; }
+            const r = await api('/api/overtime/ai/parse', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({text}) });
+            document.getElementById('workDate').value = r.workDate;
+            document.getElementById('clockIn').value = r.clockIn.length === 5 ? r.clockIn : r.clockIn.slice(0,5);
+            document.getElementById('clockOut').value = r.clockOut.length === 5 ? r.clockOut : r.clockOut.slice(0,5);
+            showMsg('AI 解析成功，请确认后保存', 'success');
+        } catch (e) { showMsg(e.message, 'error'); }
+    }
+
+    function parseDate(dateStr) {
+        const parts = dateStr.split('-');
+        return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    }
+
+    function getDayInfo(dateStr) {
+        const d = parseDate(dateStr);
+        const day = d.getDay();
+        return { day, label: '周' + DAY_NAMES[day], isSaturday: day === 6, isSunday: day === 0 };
+    }
+
+    function isAfternoonLeave(r) {
+        return !r.leave && r.clockOut >= '12:00' && r.clockOut < '14:00';
+    }
+
+    function isMorningLeave(r) {
+        return !r.leave && r.clockIn >= '13:30' && r.clockIn <= '14:00';
+    }
+
+    function getHalfDayLabel(r) {
+        if (r.leave) return '全天请假';
+        if (isMorningLeave(r)) return '上午请假';
+        if (isAfternoonLeave(r)) return '下午请假';
+        return null;
+    }
+
+    function getRowClass(r) {
+        if (r.leave) return 'row-leave';
+        if (isMorningLeave(r) || isAfternoonLeave(r)) return 'row-half';
+        if (getDayInfo(r.workDate).isSaturday) return 'row-saturday';
+        return '';
+    }
+
+    async function loadSummary() {
+        try {
+            const year = document.getElementById('summaryYear').value;
+            const month = document.getElementById('summaryMonth').value;
+            const s = await api('/api/overtime/summary?year=' + year + '&month=' + month);
+            currentRecords = s.dailyRecords;
+            document.getElementById('summaryTotal').style.display = 'block';
+            document.getElementById('totalText').textContent = s.totalOvertimeText;
+            renderListView();
+            renderCalendarView();
+        } catch (e) { showMsg(e.message, 'error'); }
+    }
+
+    function renderListView() {
+        const tbody = document.getElementById('summaryBody');
+        tbody.innerHTML = '';
+        currentRecords.forEach(r => {
+            const info = getDayInfo(r.workDate);
+            const tr = document.createElement('tr');
+            tr.className = getRowClass(r);
+            const halfLabel = getHalfDayLabel(r);
+            const leaveBtnText = r.leave ? '取消请假' : '请假';
+            const clockInDisplay = r.leave ? '-' : r.clockIn;
+            const clockOutDisplay = r.leave ? '-' : r.clockOut;
+            const weekLabel = halfLabel || info.label;
+            tr.innerHTML = `<td>${r.workDate}</td><td>${weekLabel}</td><td>${clockInDisplay}</td><td>${clockOutDisplay}</td>
+                <td>${formatMin(r.actualWorkMinutes)}</td><td>${formatMin(r.earlyOvertimeMinutes)}</td>
+                <td>${formatMin(r.lateOvertimeMinutes)}</td><td>${formatMin(r.overtimeMinutes)}</td>
+                <td><button class="secondary small" onclick="toggleLeave('${r.workDate}')">${leaveBtnText}</button></td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderCalendarView() {
+        const grid = document.getElementById('calendarGrid');
+        grid.innerHTML = '';
+        const year = parseInt(document.getElementById('summaryYear').value);
+        const month = parseInt(document.getElementById('summaryMonth').value);
+        const firstDay = new Date(year, month - 1, 1);
+        const lastDay = new Date(year, month, 0);
+        const startOffset = firstDay.getDay();
+
+        function fmtDate(y, m, d) {
+            return y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+        }
+
+        const headers = ['日', '一', '二', '三', '四', '五', '六'];
+        headers.forEach(h => {
+            const div = document.createElement('div');
+            div.className = 'calendar-header';
+            div.textContent = h;
+            grid.appendChild(div);
+        });
+
+        const recordMap = {};
+        currentRecords.forEach(r => { recordMap[r.workDate] = r; });
+
+        for (let i = 0; i < startOffset; i++) {
+            const div = document.createElement('div');
+            div.className = 'calendar-day empty';
+            grid.appendChild(div);
+        }
+
+        const todayStr = fmtDate(today.getFullYear(), today.getMonth() + 1, today.getDate());
+        for (let d = 1; d <= lastDay.getDate(); d++) {
+            const dateStr = fmtDate(year, month, d);
+            const dayOfWeek = new Date(year, month - 1, d).getDay();
+            const div = document.createElement('div');
+            let cls = 'calendar-day';
+            if (dateStr === todayStr) cls += ' today';
+
+            const record = recordMap[dateStr];
+            const isPastWeekday = dateStr < todayStr && dayOfWeek >= 1 && dayOfWeek <= 5;
+            if (record) {
+                cls += ' has-record';
+                if (record.leave) cls += ' leave';
+                else if (isMorningLeave(record) || isAfternoonLeave(record)) cls += ' half';
+            } else if (isPastWeekday) {
+                cls += ' leave';
+            }
+
+            div.className = cls;
+            const numSpan = document.createElement('span');
+            numSpan.className = 'day-num';
+            numSpan.textContent = d;
+            div.appendChild(numSpan);
+
+            const infoSpan = document.createElement('span');
+            infoSpan.className = 'day-info';
+            if (record && !record.leave) {
+                const halfLbl = getHalfDayLabel(record);
+                infoSpan.textContent = halfLbl || (record.clockIn.slice(0, 2) + ':' + record.clockIn.slice(3, 5) + '-' + record.clockOut.slice(0, 2) + ':' + record.clockOut.slice(3, 5));
+            } else if (record && record.leave) {
+                infoSpan.textContent = '全天请假';
+            } else if (isPastWeekday) {
+                infoSpan.textContent = '全天请假';
+            }
+            div.appendChild(infoSpan);
+
+            div.onclick = () => {
+                document.getElementById('workDate').value = dateStr;
+                if (record && !record.leave) {
+                    document.getElementById('clockIn').value = record.clockIn;
+                    document.getElementById('clockOut').value = record.clockOut;
+                }
+                showMsg('已选择 ' + dateStr, 'success');
+            };
+            grid.appendChild(div);
+        }
+    }
+
+    let currentView = 'list';
+    function switchView(view) {
+        currentView = view;
+        document.getElementById('viewListBtn').className = view === 'list' ? 'active' : '';
+        document.getElementById('viewCalBtn').className = view === 'calendar' ? 'active' : '';
+        document.getElementById('listView').style.display = view === 'list' ? 'block' : 'none';
+        document.getElementById('calendarView').style.display = view === 'calendar' ? 'block' : 'none';
+        if (view === 'calendar') renderCalendarView();
+    }
+
+    async function toggleLeave(dateStr) {
+        try {
+            const result = await api('/api/overtime/records/leave', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({workDate: dateStr}) });
+            if (result) {
+                showMsg(result.leave ? '已标记为请假' : '已取消请假', 'success');
+            } else {
+                showMsg('已取消请假', 'success');
+            }
+            loadSummary();
+        } catch (e) { showMsg(e.message, 'error'); }
+    }
+
+    async function importExcel() {
+        const fileInput = document.getElementById('excelFile');
+        const file = fileInput.files[0];
+        if (!file) { showMsg('请选择 Excel 文件', 'error'); return; }
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+            const res = await fetch('/api/overtime/import', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message || '导入失败');
+            const r = data.data;
+            document.getElementById('importResult').textContent = '成功导入 ' + r.total + ' 条记录';
+            showMsg('成功导入 ' + r.total + ' 条记录', 'success');
+            loadSummary();
+            fileInput.value = '';
+        } catch (e) {
+            showMsg(e.message, 'error');
+        }
+    }
+
+    async function analyzeByAi() {
+        try {
+            const body = {
+                year: parseInt(document.getElementById('summaryYear').value),
+                month: parseInt(document.getElementById('summaryMonth').value)
+            };
+            const text = await api('/api/overtime/ai/analyze', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+            const el = document.getElementById('aiAnalysis');
+            el.style.display = 'block';
+            el.textContent = text;
+        } catch (e) { showMsg(e.message, 'error'); }
+    }
+
+    document.getElementById('summaryYear').addEventListener('change', loadSummary);
+    document.getElementById('summaryMonth').addEventListener('change', loadSummary);
+
+    loadSettings();
+    loadSummary();
+</script>
+</body>
+</html>

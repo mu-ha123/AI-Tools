@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>业务名词库 - AI 工具箱</title>
+    <style>
+        :root {
+            --bg: #0f1419; --card: #1a2332; --accent: #3b82f6; --accent-hover: #2563eb;
+            --text: #e7ecf3; --muted: #94a3b8; --border: #2d3a4f; --success: #22c55e;
+            --warn: #eab308; --danger: #ef4444;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        .layout { max-width: 1100px; margin: 0 auto; padding: 24px; }
+        .nav { margin-bottom: 24px; }
+        .nav a { color: var(--accent); text-decoration: none; }
+        h1 { font-size: 1.8rem; margin-bottom: 6px; }
+        .subtitle { color: var(--muted); margin-bottom: 24px; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .card h2 { font-size: 1.1rem; margin-bottom: 16px; }
+        label { display: block; color: var(--muted); font-size: 0.85rem; margin-bottom: 4px; }
+        input, select, textarea {
+            width: 100%; padding: 10px 12px; margin-bottom: 12px;
+            background: #0d1117; border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+        }
+        textarea { resize: vertical; min-height: 80px; font-family: inherit; }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        button {
+            padding: 10px 18px; background: var(--accent); color: white; border: none;
+            border-radius: 8px; cursor: pointer; font-size: 0.95rem;
+        }
+        button:hover { background: var(--accent-hover); }
+        button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        button.secondary:hover { border-color: var(--accent); }
+        button.small { padding: 4px 10px; font-size: 0.8rem; }
+        button.danger { background: var(--danger); }
+        button.danger:hover { background: #dc2626; }
+        .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .msg { padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 0.9rem; }
+        .msg.error { background: rgba(239,68,68,0.15); color: #fca5a5; }
+        .msg.success { background: rgba(34,197,94,0.15); color: #86efac; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { color: var(--muted); font-weight: 500; }
+        .tabs { display: flex; gap: 0; margin-bottom: 16px; overflow-x: auto; }
+        .tab {
+            padding: 10px 20px; cursor: pointer; border: 1px solid var(--border);
+            background: transparent; color: var(--muted); font-size: 0.9rem; white-space: nowrap;
+            border-radius: 0; margin: 0;
+        }
+        .tab:first-child { border-radius: 8px 0 0 8px; }
+        .tab:last-child { border-radius: 0 8px 8px 0; }
+        .tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .tab:hover:not(.active) { border-color: var(--accent); }
+        .desc-cell { max-width: 350px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100;
+        }
+        .modal { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 90%; max-width: 520px; max-height: 80vh; overflow-y: auto; }
+        .modal h3 { margin-bottom: 16px; }
+        .modal .actions { justify-content: flex-end; margin-top: 16px; }
+        .history-item { background: #0d1117; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 0.85rem; }
+        .history-item .field { color: var(--accent); }
+        .history-item .old { color: var(--danger); }
+        .history-item .new { color: var(--success); }
+        .search-row { display: flex; gap: 10px; margin-bottom: 16px; }
+        .search-row input { margin-bottom: 0; flex: 1; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; background: rgba(59,130,246,0.2); color: var(--accent); }
+        .empty { text-align: center; color: var(--muted); padding: 40px 0; }
+    </style>
+</head>
+<body>
+<div class="layout">
+    <div class="nav"><a href="/">← 返回工具箱</a></div>
+    <h1>业务名词库</h1>
+    <p class="subtitle">管理系统中的业务名词，支持多系统切换、模糊搜索与变更追溯</p>
+    <div id="message"></div>
+
+    <div class="card">
+        <div class="actions" style="margin-bottom:12px">
+            <div class="tabs" id="systemTabs" style="margin-bottom:0"></div>
+            <button class="secondary small" onclick="showAddSystem()">+ 添加系统</button>
+        </div>
+
+        <div class="search-row">
+            <input type="text" id="searchInput" placeholder="输入名词名称模糊搜索..." oninput="searchTerms()">
+            <input type="file" id="excelFile" accept=".xlsx,.xls" style="display:none">
+            <button class="secondary" onclick="document.getElementById('excelFile').click()">导入 Excel</button>
+            <button class="secondary" onclick="showAddTerm()">+ 新增名词</button>
+        </div>
+        <div id="importResult" style="margin-bottom:12px;font-size:0.85rem;color:var(--muted)"></div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>名词</th><th>分类</th><th>解释</th><th>更新时间</th><th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="termBody"></tbody>
+        </table>
+        <div id="termEmpty" class="empty" style="display:none">暂无名词数据</div>
+    </div>
+</div>
+
+<div id="termModal" class="modal-overlay" style="display:none" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <h3 id="termModalTitle">新增名词</h3>
+        <input type="hidden" id="editTermId">
+        <label>名词名称</label>
+        <input type="text" id="editTermName" placeholder="请输入名词名称">
+        <label>分类</label>
+        <input type="text" id="editTermCategory" placeholder="例如：技术分析、估值指标">
+        <label>解释</label>
+        <textarea id="editTermDesc" rows="4" placeholder="请输入名词解释"></textarea>
+        <div class="actions">
+            <button class="secondary" onclick="closeModalById('termModal')">取消</button>
+            <button onclick="saveTerm()">保存</button>
+        </div>
+    </div>
+</div>
+
+<div id="systemModal" class="modal-overlay" style="display:none" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <h3>添加系统</h3>
+        <label>系统名称</label>
+        <input type="text" id="editSystemName" placeholder="请输入系统名称">
+        <div class="actions">
+            <button class="secondary" onclick="closeModalById('systemModal')">取消</button>
+            <button onclick="saveSystem()">保存</button>
+        </div>
+    </div>
+</div>
+
+<div id="detailModal" class="modal-overlay" style="display:none" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <h3 id="detailTitle">名词详情</h3>
+        <div id="detailContent" style="margin-bottom:16px"></div>
+        <h4 style="margin-bottom:8px;color:var(--muted)">变更历史</h4>
+        <div id="historyContent"></div>
+        <div class="actions">
+            <button class="secondary" onclick="closeModalById('detailModal')">关闭</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentSystemId = null;
+    let currentSystems = [];
+
+    function showMsg(text, type) {
+        const el = document.getElementById('message');
+        el.className = 'msg ' + type;
+        el.textContent = text;
+        setTimeout(() => { el.className = ''; el.textContent = ''; }, 4000);
+    }
+
+    async function api(url, options) {
+        const res = await fetch(url, options);
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || '请求失败');
+        return data.data;
+    }
+
+    function closeModal(e) {
+        if (e && e.target.className === 'modal-overlay') {
+            e.target.style.display = 'none';
+        }
+    }
+
+    function closeModalById(id) {
+        document.getElementById(id).style.display = 'none';
+    }
+
+    async function loadSystems() {
+        try {
+            currentSystems = await api('/api/glossary/systems');
+            const tabs = document.getElementById('systemTabs');
+            tabs.innerHTML = '';
+            if (currentSystems.length === 0) {
+                tabs.innerHTML = '<span style="color:var(--muted);padding:10px 0">暂无系统</span>';
+                currentSystemId = null;
+                document.getElementById('termBody').innerHTML = '';
+                return;
+            }
+            currentSystems.forEach((s, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'tab' + (i === 0 ? ' active' : '');
+                btn.textContent = s.name;
+                btn.onclick = () => switchSystem(s.id, btn);
+                tabs.appendChild(btn);
+            });
+            if (!currentSystemId || !currentSystems.find(s => s.id === currentSystemId)) {
+                currentSystemId = currentSystems[0].id;
+            }
+            document.querySelectorAll('.tab').forEach((btn, i) => {
+                btn.className = 'tab' + (currentSystems[i].id === currentSystemId ? ' active' : '');
+            });
+            loadTerms();
+        } catch (e) { showMsg(e.message, 'error'); }
+    }
+
+    function switchSystem(id, btn) {
+        currentSystemId = id;
+        document.querySelectorAll('.tab').forEach(b => b.className = 'tab');
+        btn.className = 'tab active';
+        document.getElementById('searchInput').value = '';
+        loadTerms();
+    }
+
+    let searchTimer = null;
+    function searchTerms() {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(loadTerms, 300);
+    }
+
+    async function loadTerms() {
+        if (!currentSystemId) return;
+        try {
+            const keyword = document.getElementById('searchInput').value.trim();
+            let url = '/api/glossary/terms?systemId=' + currentSystemId;
+            if (keyword) url += '&keyword=' + encodeURIComponent(keyword);
+            const terms = await api(url);
+            const tbody = document.getElementById('termBody');
+            const empty = document.getElementById('termEmpty');
+            tbody.innerHTML = '';
+            if (terms.length === 0) {
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+            terms.forEach(t => {
+                const tr = document.createElement('tr');
+                const desc = t.description || '-';
+                const cat = t.category || '-';
+                const updated = t.updatedAt ? t.updatedAt.slice(0, 16).replace('T', ' ') : '-';
+                tr.innerHTML = `<td><strong>${t.name}</strong></td><td><span class="badge">${cat}</span></td>
+                    <td class="desc-cell" title="${escHtml(desc)}">${escHtml(desc)}</td>
+                    <td style="font-size:0.8rem;color:var(--muted)">${updated}</td>
+                    <td>
+                        <button class="secondary small" onclick="showDetail(${t.id})">详情</button>
+                        <button class="secondary small" onclick="showEditTerm(${t.id},'${escHtml(t.name)}','${escHtml(cat)}','${escHtml(desc)}')">编辑</button>
+                        <button class="danger small" onclick="deleteTerm(${t.id})">删除</button>
+                    </td>`;
+                tbody.appendChild(tr);
+            });
+        } catch (e) { showMsg(e.message, 'error'); }
+    }
+
+    function escHtml(s) {
+        if (!s) return '';
+        return s.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
+    }
+
+    function showAddSystem() {
+        document.getElementById('editSystemName').value = '';
+        document.getElementById('systemModal').style.display = 'flex';
+    }
+
+    async function saveSystem() {
+        const name = document.getElementById('editSystemName').value.trim();
+        if (!name) { showMsg('请输入系统名称', 'error'); return; }
+        try {
+            await api('/api/glossary/systems', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({name}) });
+            showMsg('系统添加成功', 'success');
+            closeModalById('systemModal');
+            loadSystems();
+        } catch (e) { showMsg(e.message, 'error'); }
+    }
+
+    function showAddTerm() {
+        document.getElementById('termModalTitle').textContent = '新增名词';
+        document.getElementById('editTermId').value = '';
+        document.getElementById('editTermName').value = '';
+        document.getElementById('editTermCategory').value = '';
+        document.getElementById('editTermDesc').value = '';
+        document.getElementById('termModal').style.display = 'flex';
+    }
+
+    function showEditTerm(id, name, cat, desc) {
+        document.getElementById('termModalTitle').textContent = '编辑名词';
+        document.getElementById('editTermId').value = id;
+        document.getElementById('editTermName').value = name;
+        document.getElementById('editTermCategory').value = cat === '-' ? '' : cat;
+        document.getElementById('editTermDesc').value = desc;
+        document.getElementById('termModal').style.display = 'flex';
+    }
+
+    async function saveTerm() {
+        const id = document.getElementById('editTermId').value;
+        const name = document.getElementById('editTermName').value.trim();
+        const category = document.getElementById('editTermCategory').value.trim();
+        const description = document.getElementById('editTermDesc').value.trim();
+        if (!name) { showMsg('请输入名词名称', 'error'); return; }
+        try {
+            const body = { name, description, category };
+            if (id) {
+                await api('/api/glossary/terms/' + id, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+                showMsg('名词已更新', 'success');
+            } else {
+                body.systemId = currentSystemId;
+                await api('/api/glossary/terms', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+                showMsg('名词已创建', 'success');
+            }
+            closeModalById('termModal');
+            loadTerms();
+        } catch (e) { showMsg(e.message, 'error'); }
+    }
+
+    async function deleteTerm(id) {
+        if (!confirm('确定要删除该名词吗？')) return;
+        try {
+            await api('/api/glossary/terms/' + id, { method: 'DELETE' });
+            showMsg('名词已删除', 'success');
+            loadTerms();
+        } catch (e) { showMsg(e.message, 'error'); }
+    }
+
+    async function showDetail(id) {
+        try {
+            const term = await api('/api/glossary/terms/' + id);
+            const history = await api('/api/glossary/terms/' + id + '/history');
+            document.getElementById('detailTitle').textContent = term.name;
+            document.getElementById('detailContent').innerHTML = `
+                <div style="margin-bottom:8px"><span style="color:var(--muted)">分类：</span>${term.category || '-'}</div>
+                <div style="margin-bottom:8px"><span style="color:var(--muted)">解释：</span></div>
+                <div style="background:#0d1117;border-radius:8px;padding:12px;line-height:1.7;white-space:pre-wrap">${term.description || '暂无解释'}</div>
+                <div style="margin-top:8px;font-size:0.8rem;color:var(--muted)">
+                    创建：${term.createdAt ? term.createdAt.replace('T', ' ') : '-'} &nbsp;|&nbsp; 更新：${term.updatedAt ? term.updatedAt.replace('T', ' ') : '-'}
+                </div>
+            `;
+            const hc = document.getElementById('historyContent');
+            hc.innerHTML = '';
+            if (history.length === 0) {
+                hc.innerHTML = '<div style="color:var(--muted);font-size:0.85rem">暂无变更记录</div>';
+            } else {
+                history.forEach(h => {
+                    const div = document.createElement('div');
+                    div.className = 'history-item';
+                    const fieldMap = {name: '名称', description: '解释', category: '分类'};
+                    div.innerHTML = `<span class="field">${fieldMap[h.fieldName] || h.fieldName}</span>
+                        <span style="color:var(--muted)"> 于 ${h.changedAt ? h.changedAt.replace('T', ' ') : '-'} 变更</span>
+                        <br><span class="old">${h.oldValue || '(空)'}</span>
+                        <span style="color:var(--muted)"> → </span>
+                        <span class="new">${h.newValue || '(空)'}</span>`;
+                    hc.appendChild(div);
+                });
+            }
+            document.getElementById('detailModal').style.display = 'flex';
+        } catch (e) { showMsg(e.message, 'error'); }
+    }
+
+    document.getElementById('excelFile').addEventListener('change', importExcel);
+
+    async function importExcel() {
+        const fileInput = document.getElementById('excelFile');
+        const file = fileInput.files[0];
+        if (!file) return;
+        if (!currentSystemId) { showMsg('请先选择一个系统', 'error'); return; }
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('systemId', currentSystemId);
+        try {
+            const res = await fetch('/api/glossary/terms/import', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message || '导入失败');
+            const r = data.data;
+            let msg = '成功导入 ' + r.total + ' 条名词';
+            if (r.duplicates && r.duplicates.length > 0) {
+                msg += '，' + r.duplicates.length + ' 条重复已跳过：' + r.duplicates.join('、');
+            }
+            document.getElementById('importResult').textContent = msg;
+            showMsg(msg, r.duplicates && r.duplicates.length > 0 && r.total === 0 ? 'error' : 'success');
+            fileInput.value = '';
+            loadTerms();
+        } catch (e) {
+            showMsg(e.message, 'error');
+            fileInput.value = '';
+        }
+    }
+
+    loadSystems();
+</script>
+</body>
+</html>
