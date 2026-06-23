@@ -69,6 +69,13 @@ public class WorklogRepositoryImpl implements WorklogRepository {
     }
 
     @Override
+    public List<WorkRecord> findRecordsByDateRangeAndStatus(LocalDate start, LocalDate end, String status) {
+        return recordRepo.findTodoRecordsByDateRange(start, end).stream()
+                .map(this::toRecordDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public Optional<WorkRecord> findRecordById(Long id) {
         return recordRepo.findById(id).map(this::toRecordDomain);
     }
@@ -84,6 +91,7 @@ public class WorklogRepositoryImpl implements WorklogRepository {
         entity.setRecordDate(record.getRecordDate());
         entity.setEndDate(record.getEndDate());
         entity.setDateType(record.getDateType());
+        entity.setStatus(record.getStatus());
         if (record.getId() == null) {
             entity.setCreatedAt(LocalDateTime.now());
         }
@@ -105,6 +113,6 @@ public class WorklogRepositoryImpl implements WorklogRepository {
     private WorkRecord toRecordDomain(WorkRecordDO entity) {
         return WorkRecord.restore(entity.getId(), entity.getCategoryId(), entity.getTitle(),
                 entity.getDescription(), entity.getRecordDate(), entity.getEndDate(), entity.getDateType(),
-                entity.getCreatedAt(), entity.getUpdatedAt());
+                entity.getStatus(), entity.getCreatedAt(), entity.getUpdatedAt());
     }
 }

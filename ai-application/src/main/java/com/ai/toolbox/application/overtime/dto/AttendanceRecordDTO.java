@@ -19,4 +19,5 @@ public class AttendanceRecordDTO {
     private final long lateOvertimeMinutes;
     private final long actualWorkMinutes;
     private final boolean isLeave;
+    private final boolean isHoliday;
 }

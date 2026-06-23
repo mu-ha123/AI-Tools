@@ -129,9 +129,41 @@ public class OvertimeAppService {
                         attendanceRecordRepository.deleteByDate(workDate);
                         return null;
                     }
+                    if (existing.isHoliday()) {
+                        DailyAttendance cleared = DailyAttendance.restore(
+                                existing.getId(), existing.getWorkDate(), existing.getClockIn(),
+                                existing.getClockOut(), true, false);
+                        return cleared;
+                    }
                     return existing;
                 })
                 .orElseGet(() -> DailyAttendance.createLeave(workDate));
+        if (attendance == null) {
+            return null;
+        }
+        DailyAttendance saved = attendanceRecordRepository.save(attendance);
+        DailyOvertimeResult result = overtimeDomainService.calculateDaily(saved, settings.workSchedule(), settings.overtimePolicy());
+        return toRecordDTO(saved, result);
+    }
+
+    @Transactional
+    public AttendanceRecordDTO toggleHoliday(LocalDate workDate) {
+        OvertimeSettingsRepository.Settings settings = loadSettings();
+        DailyAttendance attendance = attendanceRecordRepository.findByDate(workDate)
+                .map(existing -> {
+                    if (existing.isHoliday()) {
+                        attendanceRecordRepository.deleteByDate(workDate);
+                        return null;
+                    }
+                    if (existing.isLeave()) {
+                        DailyAttendance cleared = DailyAttendance.restore(
+                                existing.getId(), existing.getWorkDate(), existing.getClockIn(),
+                                existing.getClockOut(), false, true);
+                        return cleared;
+                    }
+                    return existing;
+                })
+                .orElseGet(() -> DailyAttendance.createHoliday(workDate));
         if (attendance == null) {
             return null;
         }
@@ -151,6 +183,7 @@ public class OvertimeAppService {
                 .lateOvertimeMinutes(result.getLateOvertimeMinutes())
                 .actualWorkMinutes(result.getActualWorkMinutes())
                 .isLeave(attendance.isLeave())
+                .isHoliday(attendance.isHoliday())
                 .build();
     }
 }

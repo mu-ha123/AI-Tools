@@ -36,4 +36,7 @@ public class AttendanceRecordDO {
 
     @Column(nullable = false)
     private Boolean isLeave = false;
+
+    @Column(name = "is_holiday", nullable = false)
+    private Boolean isHoliday = false;
 }

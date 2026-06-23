@@ -7,7 +7,7 @@ public enum ToolType {
 
     OVERTIME("overtime", "加班计算器", "根据上下班时间与计算模式统计每日及每月加班时长", "/tools/overtime.html"),
     GLOSSARY("glossary", "业务名词库", "管理系统中的业务名词，支持多系统切换、模糊搜索与变更追溯", "/tools/glossary.html"),
-    WORKLOG("worklog", "工作输出记录", "记录日常工作任务输出，按日/周/月维度管理并支持导出", "/tools/worklog.html");
+    WORKLOG("worklog", "工作记录", "记录工作任务与待办事项，按日/周/月维度管理并支持导出", "/tools/worklog.html");
 
     private final String id;
     private final String name;

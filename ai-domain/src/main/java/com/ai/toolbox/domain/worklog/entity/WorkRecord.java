@@ -15,11 +15,12 @@ public class WorkRecord {
     private final LocalDate recordDate;
     private final LocalDate endDate;
     private final String dateType;
+    private final String status;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 
     public WorkRecord(Long id, Long categoryId, String title, String description,
-                      LocalDate recordDate, LocalDate endDate, String dateType,
+                      LocalDate recordDate, LocalDate endDate, String dateType, String status,
                       LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.categoryId = categoryId;
@@ -28,18 +29,24 @@ public class WorkRecord {
         this.recordDate = recordDate;
         this.endDate = endDate;
         this.dateType = dateType;
+        this.status = status;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
 
     public static WorkRecord create(Long categoryId, String title, String description,
                                     LocalDate recordDate, LocalDate endDate, String dateType) {
-        return new WorkRecord(null, categoryId, title, description, recordDate, endDate, dateType, null, null);
+        return new WorkRecord(null, categoryId, title, description, recordDate, endDate, dateType, "DONE", null, null);
+    }
+
+    public static WorkRecord createTodo(Long categoryId, String title, String description,
+                                        LocalDate recordDate, LocalDate endDate, String dateType) {
+        return new WorkRecord(null, categoryId, title, description, recordDate, endDate, dateType, "TODO", null, null);
     }
 
     public static WorkRecord restore(Long id, Long categoryId, String title, String description,
-                                     LocalDate recordDate, LocalDate endDate, String dateType,
+                                     LocalDate recordDate, LocalDate endDate, String dateType, String status,
                                      LocalDateTime createdAt, LocalDateTime updatedAt) {
-        return new WorkRecord(id, categoryId, title, description, recordDate, endDate, dateType, createdAt, updatedAt);
+        return new WorkRecord(id, categoryId, title, description, recordDate, endDate, dateType, status, createdAt, updatedAt);
     }
 }

@@ -27,8 +27,9 @@ public class AttendanceRecordRepositoryImpl implements AttendanceRecordRepositor
         entity.setClockIn(attendance.getClockIn());
         entity.setClockOut(attendance.getClockOut());
         entity.setIsLeave(attendance.isLeave());
+        entity.setIsHoliday(attendance.isHoliday());
         AttendanceRecordDO saved = jpaRepository.save(entity);
-        return DailyAttendance.restore(saved.getId(), saved.getWorkDate(), saved.getClockIn(), saved.getClockOut(), saved.getIsLeave());
+        return DailyAttendance.restore(saved.getId(), saved.getWorkDate(), saved.getClockIn(), saved.getClockOut(), saved.getIsLeave(), saved.getIsHoliday());
     }
 
     @Override
@@ -52,6 +53,6 @@ public class AttendanceRecordRepositoryImpl implements AttendanceRecordRepositor
     }
 
     private DailyAttendance toDomain(AttendanceRecordDO entity) {
-        return DailyAttendance.restore(entity.getId(), entity.getWorkDate(), entity.getClockIn(), entity.getClockOut(), entity.getIsLeave());
+        return DailyAttendance.restore(entity.getId(), entity.getWorkDate(), entity.getClockIn(), entity.getClockOut(), entity.getIsLeave(), entity.getIsHoliday());
     }
 }

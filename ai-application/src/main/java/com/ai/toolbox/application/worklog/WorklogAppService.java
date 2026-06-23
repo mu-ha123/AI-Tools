@@ -59,7 +59,7 @@ public class WorklogAppService {
         worklogRepository.deleteCategory(id);
     }
 
-    public List<WorkRecordDTO> listRecords(String viewType, LocalDate date, Long categoryId) {
+    public List<WorkRecordDTO> listRecords(String viewType, LocalDate date, Long categoryId, String status) {
         if (date == null) {
             date = LocalDate.now();
         }
@@ -78,42 +78,53 @@ public class WorklogAppService {
                 end = date;
                 break;
         }
-        return queryRecordsInRange(start, end, categoryId);
+        return queryRecordsInRange(start, end, categoryId, status);
     }
 
-    public List<WorkRecordDTO> listRecordsByRange(LocalDate start, LocalDate end, Long categoryId) {
+    public List<WorkRecordDTO> listRecordsByRange(LocalDate start, LocalDate end, Long categoryId, String status) {
         if (start == null) start = LocalDate.now().withDayOfMonth(1);
         if (end == null) end = LocalDate.now();
-        return queryRecordsInRange(start, end, categoryId);
+        return queryRecordsInRange(start, end, categoryId, status);
     }
 
-    private List<WorkRecordDTO> queryRecordsInRange(LocalDate start, LocalDate end, Long categoryId) {
+    private List<WorkRecordDTO> queryRecordsInRange(LocalDate start, LocalDate end, Long categoryId, String status) {
         Map<Long, WorkCategory> categoryMap = worklogRepository.findAllCategories().stream()
                 .collect(Collectors.toMap(WorkCategory::getId, c -> c));
 
-        return worklogRepository.findRecordsByDateRange(start, end).stream()
+        List<WorkRecord> records;
+        if ("TODO".equals(status)) {
+            records = worklogRepository.findRecordsByDateRangeAndStatus(start, end, status);
+        } else {
+            records = worklogRepository.findRecordsByDateRange(start, end);
+        }
+        return records.stream()
                 .filter(r -> categoryId == null || r.getCategoryId().equals(categoryId))
+                .filter(r -> "TODO".equals(status) || !"TODO".equals(r.getStatus()))
                 .map(r -> toRecordDTO(r, categoryMap.get(r.getCategoryId())))
                 .collect(Collectors.toList());
     }
 
     @Transactional
     public WorkRecordDTO createRecord(Long categoryId, String title, String description,
-                                      LocalDate recordDate, LocalDate endDate, String dateType) {
+                                       LocalDate recordDate, LocalDate endDate, String dateType, String status) {
         if (worklogRepository.findCategoryById(categoryId).isEmpty()) {
             throw new BizException(ErrorCode.WORK_CATEGORY_NOT_FOUND);
         }
         if (endDate == null) {
             endDate = recordDate;
         }
-        WorkRecord saved = worklogRepository.saveRecord(
-                WorkRecord.create(categoryId, title, description, recordDate, endDate, dateType != null ? dateType : "DAY"));
+        String dateTypeFinal = dateType != null ? dateType : "DAY";
+        boolean isTodo = "TODO".equals(status);
+        WorkRecord record = isTodo
+                ? WorkRecord.createTodo(categoryId, title, description, recordDate, endDate, dateTypeFinal)
+                : WorkRecord.create(categoryId, title, description, recordDate, endDate, dateTypeFinal);
+        WorkRecord saved = worklogRepository.saveRecord(record);
         return toRecordDTO(saved, null);
     }
 
     @Transactional
     public WorkRecordDTO updateRecord(Long id, Long categoryId, String title, String description,
-                                       LocalDate recordDate, LocalDate endDate, String dateType) {
+                                       LocalDate recordDate, LocalDate endDate, String dateType, String status) {
         WorkRecord existing = worklogRepository.findRecordById(id)
                 .orElseThrow(() -> new BizException(ErrorCode.WORK_RECORD_NOT_FOUND));
         if (categoryId != null && worklogRepository.findCategoryById(categoryId).isEmpty()) {
@@ -125,9 +136,10 @@ public class WorklogAppService {
         LocalDate finalStart = recordDate != null ? recordDate : existing.getRecordDate();
         LocalDate finalEnd = endDate != null ? endDate : existing.getEndDate();
         String finalDateType = dateType != null ? dateType : existing.getDateType();
+        String finalStatus = status != null ? status : existing.getStatus();
 
         WorkRecord updated = WorkRecord.restore(id, finalCategoryId, finalTitle, finalDesc,
-                finalStart, finalEnd, finalDateType, existing.getCreatedAt(), null);
+                finalStart, finalEnd, finalDateType, finalStatus, existing.getCreatedAt(), null);
         WorkRecord saved = worklogRepository.saveRecord(updated);
         return toRecordDTO(saved, null);
     }
@@ -143,7 +155,7 @@ public class WorklogAppService {
     public List<WorkRecordDTO> exportRecords(LocalDate start, LocalDate end) {
         if (start == null) start = LocalDate.now().withDayOfMonth(1);
         if (end == null) end = LocalDate.now();
-        return queryRecordsInRange(start, end, null);
+        return queryRecordsInRange(start, end, null, null);
     }
 
     private WorkCategoryDTO toCategoryDTO(WorkCategory c) {
@@ -160,7 +172,7 @@ public class WorklogAppService {
                 .categoryColor(c != null ? c.getColor() : "")
                 .title(r.getTitle()).description(r.getDescription())
                 .recordDate(r.getRecordDate()).endDate(r.getEndDate())
-                .dateType(r.getDateType())
+                .dateType(r.getDateType()).status(r.getStatus())
                 .createdAt(r.getCreatedAt()).updatedAt(r.getUpdatedAt())
                 .build();
     }

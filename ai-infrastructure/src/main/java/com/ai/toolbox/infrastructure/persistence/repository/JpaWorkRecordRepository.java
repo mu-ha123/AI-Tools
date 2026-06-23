@@ -12,4 +12,7 @@ public interface JpaWorkRecordRepository extends JpaRepository<WorkRecordDO, Lon
 
     @Query("SELECT r FROM WorkRecordDO r WHERE r.recordDate <= :end AND r.endDate >= :start ORDER BY r.recordDate DESC, r.id DESC")
     List<WorkRecordDO> findByDateRange(@Param("start") LocalDate start, @Param("end") LocalDate end);
+
+    @Query("SELECT r FROM WorkRecordDO r WHERE r.status = 'TODO' AND r.recordDate <= :end AND r.endDate >= :start ORDER BY r.recordDate DESC, r.id DESC")
+    List<WorkRecordDO> findTodoRecordsByDateRange(@Param("start") LocalDate start, @Param("end") LocalDate end);
 }

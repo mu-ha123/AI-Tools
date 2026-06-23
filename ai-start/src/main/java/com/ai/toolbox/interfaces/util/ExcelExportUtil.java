@@ -19,11 +19,11 @@ import java.util.List;
 
 public class ExcelExportUtil {
 
-    private static final String[] HEADERS = {"开始日期", "结束日期", "粒度", "分类", "标题", "工作内容"};
+    private static final String[] HEADERS = {"开始日期", "结束日期", "粒度", "分类", "标题", "工作内容", "状态"};
 
     public static byte[] exportWorkRecords(List<WorkRecordDTO> records) throws IOException {
         try (Workbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet("工作输出记录");
+            Sheet sheet = workbook.createSheet("工作记录");
 
             CellStyle headerStyle = createHeaderStyle(workbook);
             CellStyle dateStyle = createDateStyle(workbook);
@@ -76,6 +76,10 @@ public class ExcelExportUtil {
                 Cell descCell = row.createCell(5);
                 descCell.setCellValue(record.getDescription() != null ? record.getDescription() : "");
                 descCell.setCellStyle(normalStyle);
+
+                Cell statusCell = row.createCell(6);
+                statusCell.setCellValue("DONE".equals(record.getStatus()) ? "已完成" : "待办");
+                statusCell.setCellStyle(normalStyle);
             }
 
             ByteArrayOutputStream bos = new ByteArrayOutputStream();

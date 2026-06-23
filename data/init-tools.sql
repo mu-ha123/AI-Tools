@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS `attendance_record` (
     `clock_in`     TIME         NOT NULL                 COMMENT '上班时间',
     `clock_out`    TIME         NOT NULL                 COMMENT '下班时间',
     `is_leave`     TINYINT(1)   NOT NULL DEFAULT 0       COMMENT '是否请假(0-否,1-是)',
+    `is_holiday`   TINYINT(1)   NOT NULL DEFAULT 0       COMMENT '是否法定节假日(0-否,1-是)',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_attendance_work_date` (`work_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='考勤打卡记录';

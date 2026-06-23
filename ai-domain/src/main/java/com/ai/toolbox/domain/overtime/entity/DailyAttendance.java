@@ -22,30 +22,36 @@ public class DailyAttendance {
     private final LocalTime clockIn;
     private final LocalTime clockOut;
     private final boolean isLeave;
+    private final boolean isHoliday;
 
-    public DailyAttendance(Long id, LocalDate workDate, LocalTime clockIn, LocalTime clockOut, boolean isLeave) {
+    public DailyAttendance(Long id, LocalDate workDate, LocalTime clockIn, LocalTime clockOut, boolean isLeave, boolean isHoliday) {
         this.id = id;
         this.workDate = workDate;
         this.clockIn = clockIn;
         this.clockOut = clockOut;
         this.isLeave = isLeave;
+        this.isHoliday = isHoliday;
         validate();
     }
 
     public static DailyAttendance create(LocalDate workDate, LocalTime clockIn, LocalTime clockOut) {
-        return new DailyAttendance(null, workDate, clockIn, clockOut, false);
+        return new DailyAttendance(null, workDate, clockIn, clockOut, false, false);
     }
 
     public static DailyAttendance createLeave(LocalDate workDate) {
-        return new DailyAttendance(null, workDate, LocalTime.of(0, 0), LocalTime.of(0, 1), true);
+        return new DailyAttendance(null, workDate, LocalTime.of(0, 0), LocalTime.of(0, 1), true, false);
     }
 
-    public static DailyAttendance restore(Long id, LocalDate workDate, LocalTime clockIn, LocalTime clockOut, boolean isLeave) {
-        return new DailyAttendance(id, workDate, clockIn, clockOut, isLeave);
+    public static DailyAttendance createHoliday(LocalDate workDate) {
+        return new DailyAttendance(null, workDate, LocalTime.of(0, 0), LocalTime.of(0, 1), false, true);
+    }
+
+    public static DailyAttendance restore(Long id, LocalDate workDate, LocalTime clockIn, LocalTime clockOut, boolean isLeave, boolean isHoliday) {
+        return new DailyAttendance(id, workDate, clockIn, clockOut, isLeave, isHoliday);
     }
 
     public DailyOvertimeResult calculateOvertime(WorkSchedule schedule, OvertimePolicy policy) {
-        if (isLeave) {
+        if (isLeave || isHoliday) {
             return DailyOvertimeResult.builder()
                     .workDate(workDate)
                     .overtimeMinutes(0L)
@@ -122,7 +128,7 @@ public class DailyAttendance {
         if (workDate == null) {
             throw new BizException(ErrorCode.OVERTIME_TIME_INVALID, "日期不能为空");
         }
-        if (!isLeave) {
+        if (!isLeave && !isHoliday) {
             if (clockIn == null || clockOut == null) {
                 throw new BizException(ErrorCode.OVERTIME_TIME_INVALID, "打卡时间不能为空");
             }
@@ -145,11 +151,12 @@ public class DailyAttendance {
                 && Objects.equals(workDate, that.workDate)
                 && Objects.equals(clockIn, that.clockIn)
                 && Objects.equals(clockOut, that.clockOut)
-                && isLeave == that.isLeave;
+                && isLeave == that.isLeave
+                && isHoliday == that.isHoliday;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, workDate, clockIn, clockOut, isLeave);
+        return Objects.hash(id, workDate, clockIn, clockOut, isLeave, isHoliday);
     }
 }

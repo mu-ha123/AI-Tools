@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>工作输出记录 - AI 工具箱</title>
+    <title>工作记录 - AI 工具箱</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
         :root {
@@ -110,6 +110,15 @@
         .modal h3 { margin-bottom: 16px; }
         .modal .actions { justify-content: flex-end; margin-top: 16px; }
 
+        .status-tab {
+            padding: 8px 24px; cursor: pointer; border: 1px solid var(--border);
+            background: transparent; color: var(--muted); font-size: 0.9rem;
+        }
+        .status-tab:first-child { border-radius: 8px 0 0 8px; }
+        .status-tab:last-child { border-radius: 0 8px 8px 0; }
+        .status-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .status-tab:hover:not(.active) { border-color: var(--accent); }
+
         .color-picker { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
         .color-opt {
             width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
@@ -180,11 +189,15 @@
 <body>
 <div class="layout">
     <div class="nav"><a href="/">← 返回工具箱</a></div>
-    <h1>工作输出记录</h1>
-    <p class="subtitle">按日/周/月/自定义时间范围记录工作任务输出，支持分类管理与 Excel 导出</p>
+    <h1>工作记录</h1>
+    <p class="subtitle">按日/周/月/自定义时间范围记录工作任务与待办事项，支持分类管理与 Excel 导出</p>
     <div id="message"></div>
 
     <div class="card">
+        <div class="status-tabs" id="statusTabs" style="display:flex;gap:0;margin-bottom:12px">
+            <button class="status-tab active" data-status="DONE" onclick="switchStatus('DONE')">已完成</button>
+            <button class="status-tab" data-status="TODO" onclick="switchStatus('TODO')">待办事项</button>
+        </div>
         <div class="actions" style="margin-bottom:12px;justify-content:space-between">
             <div class="view-tabs" id="viewTabs" style="margin-bottom:0"></div>
             <div class="actions" style="margin-bottom:0">
@@ -235,6 +248,11 @@
         <input type="text" id="editTitle" placeholder="请输入工作标题">
         <label>工作内容</label>
         <textarea id="editDescription" rows="4" placeholder="请输入工作内容描述"></textarea>
+        <label>
+            <input type="checkbox" id="editStatus" onchange="document.getElementById('editStatusHidden').value = this.checked ? 'TODO' : 'DONE'">
+            标记为待办事项
+        </label>
+        <input type="hidden" id="editStatusHidden" value="DONE">
         <div class="actions">
             <button class="secondary" onclick="closeModalById('recordModal')">取消</button>
             <button onclick="saveRecord()">保存</button>
@@ -266,6 +284,7 @@
     let currentCategories = [];
     let currentRecords = [];
     let selectedCategoryId = null;
+    let currentStatus = 'DONE';
 
     let rangeFlatpickr = null;
     let startDatePicker = null;
@@ -360,9 +379,19 @@
         });
     }
 
+    function switchStatus(status) {
+        currentStatus = status;
+        document.querySelectorAll('#statusTabs .status-tab').forEach(b => {
+            b.className = 'status-tab' + (b.dataset.status === status ? ' active' : '');
+        });
+        selectedCategoryId = null;
+        renderCategoryTabs();
+        loadRecords();
+    }
+
     function switchView(type) {
         currentViewType = type;
-        document.querySelectorAll('.view-tab').forEach(b => {
+        document.querySelectorAll('#viewTabs .view-tab').forEach(b => {
             const label = b.textContent;
             const key = label === '日' ? 'DAY' : label === '周' ? 'WEEK' : label === '月' ? 'MONTH' : 'CUSTOM';
             b.className = 'view-tab' + (key === type ? ' active' : '');
@@ -460,18 +489,19 @@
     }
 
     function buildRecordsUrl(categoryId) {
+        let url;
         if (currentViewType === 'CUSTOM') {
             const dates = rangeFlatpickr ? rangeFlatpickr.selectedDates : [];
             if (dates.length < 2) return null;
             const start = formatDate(dates[0]);
             const end = formatDate(dates[1]);
-            let url = '/api/work/records?start=' + start + '&end=' + end;
-            if (categoryId) url += '&categoryId=' + categoryId;
-            return url;
+            url = '/api/work/records?start=' + start + '&end=' + end;
+        } else {
+            const date = getDateParam();
+            url = '/api/work/records?viewType=' + currentViewType + '&date=' + date;
         }
-        const date = getDateParam();
-        let url = '/api/work/records?viewType=' + currentViewType + '&date=' + date;
         if (categoryId) url += '&categoryId=' + categoryId;
+        url += '&status=' + currentStatus;
         return url;
     }
 
@@ -652,7 +682,7 @@
     function renderRecords() {
         const container = document.getElementById('recordContainer');
         if (currentRecords.length === 0) {
-            container.innerHTML = '<div class="empty">暂无记录</div>';
+            container.innerHTML = '<div class="empty">暂无' + (currentStatus === 'TODO' ? '待办事项' : '已完成工作') + '</div>';
             return;
         }
 
@@ -677,18 +707,27 @@
                     const ed = r.endDate.slice(0,10);
                     rangeInfo = '<span style="color:var(--muted);font-size:0.78rem;margin-left:6px">' + r.recordDate + ' ~ ' + ed + '</span>';
                 }
-                html += '<div class="record-item" style="border-left-color:' + (r.categoryColor || 'var(--accent)') + '">';
+                const isTodo = r.status === 'TODO';
+                const borderColor = isTodo ? 'var(--warn)' : (r.categoryColor || 'var(--accent)');
+                html += '<div class="record-item" style="border-left-color:' + borderColor + ';' + (isTodo ? 'opacity:0.9' : '') + '">';
                 html += '<div class="info">';
-                html += '<div class="title">' + escHtml(r.title) + '</div>';
+                const todoIcon = isTodo ? '<span style="color:var(--warn);margin-right:6px">◷</span>' : '<span style="color:var(--success);margin-right:6px">✓</span>';
+                html += '<div class="title">' + todoIcon + escHtml(r.title) + '</div>';
                 if (r.description) {
                     html += '<div class="desc">' + escHtml(r.description) + '</div>';
                 }
                 html += '<div class="meta">';
                 html += '<span class="badge" style="background:' + (r.categoryColor || 'var(--accent)') + '">' + escHtml(r.categoryName) + '</span>';
                 html += '<span class="type-badge">' + typeLabel + '</span>';
+                if (isTodo) {
+                    html += '<span class="type-badge" style="background:var(--warn);color:#000">待办</span>';
+                } else {
+                    html += '<span class="type-badge" style="background:var(--success);color:#000">已完成</span>';
+                }
                 html += rangeInfo;
                 html += '</div></div>';
                 html += '<div class="record-actions">';
+                html += '<button class="secondary small" onclick="toggleRecordStatus(' + r.id + ')">' + (isTodo ? '标记完成' : '转为待办') + '</button>';
                 html += '<button class="secondary small" onclick="showEditRecord(' + r.id + ')">编辑</button>';
                 html += '<button class="danger small" onclick="deleteRecord(' + r.id + ')">删除</button>';
                 html += '</div></div>';
@@ -725,6 +764,9 @@
         document.getElementById('editRecordId').value = '';
         document.getElementById('editTitle').value = '';
         document.getElementById('editDescription').value = '';
+        const isTodo = currentStatus === 'TODO';
+        document.getElementById('editStatus').checked = isTodo;
+        document.getElementById('editStatusHidden').value = isTodo ? 'TODO' : 'DONE';
 
         const range = getDateRange();
         if (startDatePicker) startDatePicker.setDate(range.start);
@@ -741,6 +783,9 @@
         document.getElementById('editRecordId').value = id;
         document.getElementById('editTitle').value = record.title;
         document.getElementById('editDescription').value = record.description || '';
+        const isTodo = record.status === 'TODO';
+        document.getElementById('editStatus').checked = isTodo;
+        document.getElementById('editStatusHidden').value = record.status || 'DONE';
         if (startDatePicker) startDatePicker.setDate(record.recordDate);
         if (endDatePicker) endDatePicker.setDate(record.endDate || record.recordDate);
         populateCategorySelect(record.categoryId);
@@ -757,11 +802,12 @@
         const startStr = startDate ? formatDate(startDate) : '';
         const endStr = endDate ? formatDate(endDate) : startStr;
         const dateType = autoDetectDateType(startStr, endStr);
+        const status = document.getElementById('editStatusHidden').value;
 
         if (!title) { showMsg('请输入标题', 'error'); return; }
         if (!startStr) { showMsg('请选择开始日期', 'error'); return; }
 
-        const body = { categoryId, title, description, recordDate: startStr, endDate: endStr, dateType };
+        const body = { categoryId, title, description, recordDate: startStr, endDate: endStr, dateType, status };
         try {
             if (id) {
                 await api('/api/work/records/' + id, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
@@ -780,6 +826,21 @@
         try {
             await api('/api/work/records/' + id, { method: 'DELETE' });
             showMsg('记录已删除', 'success');
+            fetchRecordsByCategory(selectedCategoryId);
+        } catch (e) { showMsg(e.message, 'error'); }
+    }
+
+    async function toggleRecordStatus(id) {
+        try {
+            const record = currentRecords.find(r => r.id === id);
+            if (!record) return;
+            const newStatus = record.status === 'TODO' ? 'DONE' : 'TODO';
+            await api('/api/work/records/' + id, {
+                method: 'PUT',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ status: newStatus })
+            });
+            showMsg(newStatus === 'DONE' ? '已标记为完成' : '已转为待办', 'success');
             fetchRecordsByCategory(selectedCategoryId);
         } catch (e) { showMsg(e.message, 'error'); }
     }
@@ -831,7 +892,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = '工作输出记录_' + s + '_' + e + '.xlsx';
+            a.download = '工作记录_' + s + '_' + e + '.xlsx';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

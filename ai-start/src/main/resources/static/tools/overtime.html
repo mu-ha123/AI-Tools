@@ -11,6 +11,7 @@
             --leave-red: rgba(239,68,68,0.2); --leave-red-text: #fca5a5;
             --half-yellow: rgba(234,179,8,0.2); --half-yellow-text: #fde68a;
             --saturday-bg: rgba(59,130,246,0.1);
+            --holiday-green: rgba(34,197,94,0.2); --holiday-green-text: #86efac;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
@@ -54,12 +55,15 @@
         .row-half { outline: 2px solid var(--half-yellow-text); outline-offset: -2px; }
         .row-half td { color: var(--half-yellow-text); }
         .row-saturday { background: var(--saturday-bg); }
+        .row-holiday { outline: 2px solid var(--holiday-green-text); outline-offset: -2px; }
+        .row-holiday td { color: var(--holiday-green-text); }
 
-        .legend { display: flex; gap: 16px; margin-bottom: 12px; font-size: 0.8rem; }
+        .legend { display: flex; gap: 16px; margin-bottom: 12px; font-size: 0.8rem; flex-wrap: wrap; }
         .legend-item { display: flex; align-items: center; gap: 6px; }
         .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
         .legend-dot.red { background: var(--leave-red); border: 1px solid var(--leave-red-text); }
         .legend-dot.yellow { background: var(--half-yellow); border: 1px solid var(--half-yellow-text); }
+        .legend-dot.green { background: var(--holiday-green); border: 1px solid var(--holiday-green-text); }
 
         .view-toggle { display: flex; gap: 0; margin-bottom: 12px; }
         .view-toggle button {
@@ -88,6 +92,9 @@
         .calendar-day.half { border-color: var(--half-yellow-text); }
         .calendar-day.half .day-num { color: var(--half-yellow-text); }
         .calendar-day.half .day-info { color: var(--half-yellow-text); }
+        .calendar-day.holiday { border-color: var(--holiday-green-text); }
+        .calendar-day.holiday .day-num { color: var(--holiday-green-text); }
+        .calendar-day.holiday .day-info { color: var(--holiday-green-text); }
         .calendar-day.saturday { background: var(--saturday-bg); }
         .calendar-day.today { border-color: var(--success); border-width: 2px; }
     </style>
@@ -162,6 +169,7 @@
         <div class="legend">
             <span class="legend-item"><span class="legend-dot red"></span> 请假</span>
             <span class="legend-item"><span class="legend-dot yellow"></span> 半天请假</span>
+            <span class="legend-item"><span class="legend-dot green"></span> 法定节假日</span>
         </div>
 
         <div class="view-toggle">
@@ -196,6 +204,42 @@
     document.getElementById('summaryYear').value = today.getFullYear();
     document.getElementById('summaryMonth').value = today.getMonth() + 1;
     const DAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
+
+    const STATUTORY_HOLIDAYS = {
+        '2025-01-01': '元旦',
+        '2025-01-28': '春节', '2025-01-29': '春节', '2025-01-30': '春节',
+        '2025-01-31': '春节', '2025-02-01': '春节', '2025-02-02': '春节', '2025-02-03': '春节',
+        '2025-04-04': '清明节', '2025-04-05': '清明节', '2025-04-06': '清明节',
+        '2025-05-01': '劳动节', '2025-05-02': '劳动节', '2025-05-03': '劳动节', '2025-05-04': '劳动节', '2025-05-05': '劳动节',
+        '2025-05-31': '端午节', '2025-06-01': '端午节', '2025-06-02': '端午节',
+        '2025-10-01': '国庆节', '2025-10-02': '国庆节', '2025-10-03': '国庆节',
+        '2025-10-04': '国庆节', '2025-10-05': '国庆节', '2025-10-06': '国庆节', '2025-10-07': '国庆节',
+        '2025-10-06': '中秋节', '2025-10-07': '中秋节', '2025-10-08': '中秋节',
+
+        '2026-01-01': '元旦',
+        '2026-02-16': '春节', '2026-02-17': '春节', '2026-02-18': '春节',
+        '2026-02-19': '春节', '2026-02-20': '春节', '2026-02-21': '春节', '2026-02-22': '春节',
+        '2026-04-04': '清明节', '2026-04-05': '清明节', '2026-04-06': '清明节',
+        '2026-05-01': '劳动节', '2026-05-02': '劳动节', '2026-05-03': '劳动节', '2026-05-04': '劳动节', '2026-05-05': '劳动节',
+        '2026-06-19': '端午节', '2026-06-20': '端午节', '2026-06-21': '端午节',
+        '2026-09-27': '中秋节', '2026-09-28': '中秋节', '2026-09-29': '中秋节',
+        '2026-10-01': '国庆节', '2026-10-02': '国庆节', '2026-10-03': '国庆节',
+        '2026-10-04': '国庆节', '2026-10-05': '国庆节', '2026-10-06': '国庆节', '2026-10-07': '国庆节',
+
+        '2027-01-01': '元旦',
+        '2027-02-06': '春节', '2027-02-07': '春节', '2027-02-08': '春节',
+        '2027-02-09': '春节', '2027-02-10': '春节', '2027-02-11': '春节', '2027-02-12': '春节',
+        '2027-04-04': '清明节', '2027-04-05': '清明节', '2027-04-06': '清明节',
+        '2027-05-01': '劳动节', '2027-05-02': '劳动节', '2027-05-03': '劳动节', '2027-05-04': '劳动节', '2027-05-05': '劳动节',
+        '2027-06-09': '端午节', '2027-06-10': '端午节', '2027-06-11': '端午节',
+        '2027-09-17': '中秋节', '2027-09-18': '中秋节', '2027-09-19': '中秋节',
+        '2027-10-01': '国庆节', '2027-10-02': '国庆节', '2027-10-03': '国庆节',
+        '2027-10-04': '国庆节', '2027-10-05': '国庆节', '2027-10-06': '国庆节', '2027-10-07': '国庆节',
+    };
+
+    function getHolidayLabel(dateStr) {
+        return STATUTORY_HOLIDAYS[dateStr] || null;
+    }
 
     function showMsg(text, type) {
         const el = document.getElementById('message');
@@ -297,7 +341,8 @@
         return null;
     }
 
-    function getRowClass(r) {
+    function getRowClass(r, holidayLabel) {
+        if (holidayLabel || r.holiday) return 'row-holiday';
         if (r.leave) return 'row-leave';
         if (isMorningLeave(r) || isAfternoonLeave(r)) return 'row-half';
         if (getDayInfo(r.workDate).isSaturday) return 'row-saturday';
@@ -320,21 +365,49 @@
     function renderListView() {
         const tbody = document.getElementById('summaryBody');
         tbody.innerHTML = '';
-        currentRecords.forEach(r => {
-            const info = getDayInfo(r.workDate);
+        const year = parseInt(document.getElementById('summaryYear').value);
+        const month = parseInt(document.getElementById('summaryMonth').value);
+
+        const recordMap = {};
+        currentRecords.forEach(r => { recordMap[r.workDate] = r; });
+
+        const lastDay = new Date(year, month, 0);
+        for (let d = 1; d <= lastDay.getDate(); d++) {
+            const dateStr = fmtDate2(year, month, d);
+            const holidayLabel = getHolidayLabel(dateStr);
+            const record = recordMap[dateStr];
+
+            if (!record && !holidayLabel) continue;
+
             const tr = document.createElement('tr');
-            tr.className = getRowClass(r);
-            const halfLabel = getHalfDayLabel(r);
-            const leaveBtnText = r.leave ? '取消请假' : '请假';
-            const clockInDisplay = r.leave ? '-' : r.clockIn;
-            const clockOutDisplay = r.leave ? '-' : r.clockOut;
-            const weekLabel = halfLabel || info.label;
-            tr.innerHTML = `<td>${r.workDate}</td><td>${weekLabel}</td><td>${clockInDisplay}</td><td>${clockOutDisplay}</td>
-                <td>${formatMin(r.actualWorkMinutes)}</td><td>${formatMin(r.earlyOvertimeMinutes)}</td>
-                <td>${formatMin(r.lateOvertimeMinutes)}</td><td>${formatMin(r.overtimeMinutes)}</td>
-                <td><button class="secondary small" onclick="toggleLeave('${r.workDate}')">${leaveBtnText}</button></td>`;
+            const info = getDayInfo(dateStr);
+            const halfLabel = record ? getHalfDayLabel(record) : null;
+
+            if (record) {
+                const isHolidayDate = holidayLabel || record.holiday;
+                tr.className = getRowClass(record, holidayLabel);
+                const leaveBtnText = (record.leave && !isHolidayDate) ? '取消请假' : '请假';
+                const holidayBtnText = isHolidayDate ? '取消节假日' : '节假日';
+                const clockInDisplay = (record.leave || isHolidayDate) ? '-' : record.clockIn;
+                const clockOutDisplay = (record.leave || isHolidayDate) ? '-' : record.clockOut;
+                const weekLabel = isHolidayDate ? ('法定节假日(' + holidayLabel + ')') : (halfLabel || info.label);
+                tr.innerHTML = `<td>${dateStr}</td><td>${weekLabel}</td><td>${clockInDisplay}</td><td>${clockOutDisplay}</td>
+                    <td>${formatMin(record.actualWorkMinutes)}</td><td>${formatMin(record.earlyOvertimeMinutes)}</td>
+                    <td>${formatMin(record.lateOvertimeMinutes)}</td><td>${formatMin(record.overtimeMinutes)}</td>
+                    <td><button class="secondary small" onclick="toggleLeave('${dateStr}')"${isHolidayDate?' disabled':''}>${leaveBtnText}</button>
+                    <button class="secondary small" onclick="toggleHoliday('${dateStr}')">${holidayBtnText}</button></td>`;
+            } else {
+                tr.className = 'row-holiday';
+                tr.innerHTML = `<td>${dateStr}</td><td>法定节假日(${holidayLabel})</td><td>-</td><td>-</td>
+                    <td>-</td><td>-</td><td>-</td><td>-</td>
+                    <td><button class="secondary small" onclick="toggleHoliday('${dateStr}')">取消节假日</button></td>`;
+            }
             tbody.appendChild(tr);
-        });
+        }
+
+        function fmtDate2(y, m, d) {
+            return y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+        }
     }
 
     function renderCalendarView() {
@@ -375,11 +448,16 @@
             let cls = 'calendar-day';
             if (dateStr === todayStr) cls += ' today';
 
+            const holidayLabel = getHolidayLabel(dateStr);
             const record = recordMap[dateStr];
             const isPastWeekday = dateStr < todayStr && dayOfWeek >= 1 && dayOfWeek <= 5;
-            if (record) {
+
+            if (holidayLabel) {
+                cls += ' holiday';
+            } else if (record) {
                 cls += ' has-record';
-                if (record.leave) cls += ' leave';
+                if (record.holiday) cls += ' holiday';
+                else if (record.leave) cls += ' leave';
                 else if (isMorningLeave(record) || isAfternoonLeave(record)) cls += ' half';
             } else if (isPastWeekday) {
                 cls += ' leave';
@@ -393,7 +471,11 @@
 
             const infoSpan = document.createElement('span');
             infoSpan.className = 'day-info';
-            if (record && !record.leave) {
+            if (holidayLabel) {
+                infoSpan.textContent = holidayLabel;
+            } else if (record && record.holiday) {
+                infoSpan.textContent = '法定节假日';
+            } else if (record && !record.leave) {
                 const halfLbl = getHalfDayLabel(record);
                 infoSpan.textContent = halfLbl || (record.clockIn.slice(0, 2) + ':' + record.clockIn.slice(3, 5) + '-' + record.clockOut.slice(0, 2) + ':' + record.clockOut.slice(3, 5));
             } else if (record && record.leave) {
@@ -405,7 +487,7 @@
 
             div.onclick = () => {
                 document.getElementById('workDate').value = dateStr;
-                if (record && !record.leave) {
+                if (record && !record.leave && !record.holiday) {
                     document.getElementById('clockIn').value = record.clockIn;
                     document.getElementById('clockOut').value = record.clockOut;
                 }
@@ -432,6 +514,18 @@
                 showMsg(result.leave ? '已标记为请假' : '已取消请假', 'success');
             } else {
                 showMsg('已取消请假', 'success');
+            }
+            loadSummary();
+        } catch (e) { showMsg(e.message, 'error'); }
+    }
+
+    async function toggleHoliday(dateStr) {
+        try {
+            const result = await api('/api/overtime/records/holiday', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({workDate: dateStr}) });
+            if (result) {
+                showMsg(result.holiday ? '已标记为法定节假日' : '已取消法定节假日', 'success');
+            } else {
+                showMsg('已取消法定节假日', 'success');
             }
             loadSummary();
         } catch (e) { showMsg(e.message, 'error'); }

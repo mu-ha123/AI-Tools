@@ -66,6 +66,16 @@ public class OvertimeController {
         return Result.success(record);
     }
 
+    @PostMapping("/records/holiday")
+    public Result<AttendanceRecordDTO> toggleHoliday(@RequestBody Map<String, String> body) {
+        LocalDate workDate = LocalDate.parse(body.get("workDate"));
+        AttendanceRecordDTO record = overtimeAppService.toggleHoliday(workDate);
+        if (record == null) {
+            return Result.success();
+        }
+        return Result.success(record);
+    }
+
     @PostMapping("/import")
     public Result<Map<String, Object>> importExcel(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {

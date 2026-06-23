@@ -59,11 +59,12 @@ public class WorklogController {
             @RequestParam(value = "date", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(value = "start", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
             @RequestParam(value = "end", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end,
-            @RequestParam(value = "categoryId", required = false) Long categoryId) {
+            @RequestParam(value = "categoryId", required = false) Long categoryId,
+            @RequestParam(value = "status", required = false) String status) {
         if (start != null && end != null) {
-            return Result.success(worklogAppService.listRecordsByRange(start, end, categoryId));
+            return Result.success(worklogAppService.listRecordsByRange(start, end, categoryId, status));
         }
-        return Result.success(worklogAppService.listRecords(viewType, date, categoryId));
+        return Result.success(worklogAppService.listRecords(viewType, date, categoryId, status));
     }
 
     @PostMapping("/records")
@@ -74,7 +75,8 @@ public class WorklogController {
         LocalDate recordDate = LocalDate.parse((String) body.get("recordDate"));
         LocalDate endDate = body.containsKey("endDate") ? LocalDate.parse((String) body.get("endDate")) : null;
         String dateType = (String) body.get("dateType");
-        return Result.success(worklogAppService.createRecord(categoryId, title, description, recordDate, endDate, dateType));
+        String status = (String) body.get("status");
+        return Result.success(worklogAppService.createRecord(categoryId, title, description, recordDate, endDate, dateType, status));
     }
 
     @PutMapping("/records/{id}")
@@ -85,7 +87,8 @@ public class WorklogController {
         LocalDate recordDate = body.containsKey("recordDate") ? LocalDate.parse((String) body.get("recordDate")) : null;
         LocalDate endDate = body.containsKey("endDate") ? LocalDate.parse((String) body.get("endDate")) : null;
         String dateType = (String) body.get("dateType");
-        return Result.success(worklogAppService.updateRecord(id, categoryId, title, description, recordDate, endDate, dateType));
+        String status = (String) body.get("status");
+        return Result.success(worklogAppService.updateRecord(id, categoryId, title, description, recordDate, endDate, dateType, status));
     }
 
     @DeleteMapping("/records/{id}")
@@ -101,7 +104,7 @@ public class WorklogController {
         List<WorkRecordDTO> records = worklogAppService.exportRecords(start, end);
         byte[] excelBytes = ExcelExportUtil.exportWorkRecords(records);
 
-        String filename = "工作输出记录_" + start + "_" + end + ".xlsx";
+        String filename = "工作记录_" + start + "_" + end + ".xlsx";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
         headers.setContentDispositionFormData("attachment", filename);

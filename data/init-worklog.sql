@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS `work_record` (
     `record_date` DATE         NOT NULL                 COMMENT '开始日期',
     `end_date`    DATE         NOT NULL                 COMMENT '结束日期',
     `date_type`   VARCHAR(10)  NOT NULL DEFAULT 'DAY'   COMMENT '粒度：DAY/WEEK/MONTH/CUSTOM',
+    `status`      VARCHAR(10)  NOT NULL DEFAULT 'DONE'  COMMENT '状态：DONE-已完成 TODO-待办',
     `created_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),

@@ -42,6 +42,9 @@ public class WorkRecordDO {
     @Column(name = "date_type", nullable = false, length = 10)
     private String dateType;
 
+    @Column(name = "status", nullable = false, length = 10)
+    private String status = "DONE";
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

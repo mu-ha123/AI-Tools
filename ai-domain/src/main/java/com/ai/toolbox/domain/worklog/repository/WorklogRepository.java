@@ -21,6 +21,8 @@ public interface WorklogRepository {
 
     List<WorkRecord> findRecordsByDateRange(LocalDate start, LocalDate end);
 
+    List<WorkRecord> findRecordsByDateRangeAndStatus(LocalDate start, LocalDate end, String status);
+
     Optional<WorkRecord> findRecordById(Long id);
 
     WorkRecord saveRecord(WorkRecord record);
