@@ -394,7 +394,8 @@
                 tr.innerHTML = `<td>${dateStr}</td><td>${weekLabel}</td><td>${clockInDisplay}</td><td>${clockOutDisplay}</td>
                     <td>${formatMin(record.actualWorkMinutes)}</td><td>${formatMin(record.earlyOvertimeMinutes)}</td>
                     <td>${formatMin(record.lateOvertimeMinutes)}</td><td>${formatMin(record.overtimeMinutes)}</td>
-                    <td><button class="secondary small" onclick="toggleLeave('${dateStr}')"${isHolidayDate?' disabled':''}>${leaveBtnText}</button>
+                    <td><button class="secondary small" onclick="editRecord('${dateStr}')">编辑</button>
+                    <button class="secondary small" onclick="toggleLeave('${dateStr}')"${isHolidayDate?' disabled':''}>${leaveBtnText}</button>
                     <button class="secondary small" onclick="toggleHoliday('${dateStr}')">${holidayBtnText}</button></td>`;
             } else {
                 tr.className = 'row-holiday';
@@ -529,6 +530,16 @@
             }
             loadSummary();
         } catch (e) { showMsg(e.message, 'error'); }
+    }
+
+    function editRecord(dateStr) {
+        const record = currentRecords.find(r => r.workDate === dateStr);
+        if (!record) return;
+        document.getElementById('workDate').value = dateStr;
+        document.getElementById('clockIn').value = record.clockIn;
+        document.getElementById('clockOut').value = record.clockOut;
+        document.getElementById('workDate').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showMsg('已加载 ' + dateStr + ' 的打卡数据，修改后点击保存', 'success');
     }
 
     async function importExcel() {
