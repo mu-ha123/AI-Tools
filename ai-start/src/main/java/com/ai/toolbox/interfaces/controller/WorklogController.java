@@ -3,10 +3,14 @@ package com.ai.toolbox.interfaces.controller;
 import com.ai.toolbox.application.worklog.WorklogAppService;
 import com.ai.toolbox.application.worklog.dto.WorkCategoryDTO;
 import com.ai.toolbox.application.worklog.dto.WorkRecordDTO;
+import com.ai.toolbox.application.worklog.dto.WorkSummaryDTO;
 import com.ai.toolbox.common.result.Result;
+import com.ai.toolbox.infrastructure.ai.WorklogAiService;
 import com.ai.toolbox.interfaces.util.ExcelExportUtil;
+import com.ai.toolbox.interfaces.util.WorkSummaryExportUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +36,7 @@ import java.util.Map;
 public class WorklogController {
 
     private final WorklogAppService worklogAppService;
+    private final WorklogAiService worklogAiService;
 
     @GetMapping("/categories")
     public Result<List<WorkCategoryDTO>> listCategories() {
@@ -107,8 +113,50 @@ public class WorklogController {
         String filename = "工作记录_" + start + "_" + end + ".xlsx";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-        headers.setContentDispositionFormData("attachment", filename);
+        headers.setContentDisposition(ContentDisposition.builder("attachment")
+                .filename(filename, StandardCharsets.UTF_8)
+                .build());
 
         return ResponseEntity.ok().headers(headers).body(excelBytes);
+    }
+
+    @PostMapping("/ai/summary")
+    public Result<WorkSummaryDTO> generateSummary(
+            @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
+        String context = worklogAppService.buildSummaryContext(start, end);
+        String content = worklogAiService.generateSummary(context);
+        return Result.success(worklogAppService.generateSummary(start, end, content));
+    }
+
+    @GetMapping("/summaries")
+    public Result<List<WorkSummaryDTO>> listSummaries() {
+        return Result.success(worklogAppService.listSummaries());
+    }
+
+    @GetMapping("/summaries/{id}")
+    public Result<WorkSummaryDTO> getSummary(@PathVariable Long id) {
+        return Result.success(worklogAppService.getSummary(id));
+    }
+
+    @DeleteMapping("/summaries/{id}")
+    public Result<Void> deleteSummary(@PathVariable Long id) {
+        worklogAppService.deleteSummary(id);
+        return Result.success();
+    }
+
+    @GetMapping("/summaries/{id}/export")
+    public ResponseEntity<byte[]> exportSummary(@PathVariable Long id) throws IOException {
+        WorkSummaryDTO summary = worklogAppService.getSummary(id);
+        byte[] docxBytes = WorkSummaryExportUtil.exportWorkSummary(summary);
+
+        String filename = "工作总结_" + summary.getStartDate() + "_" + summary.getEndDate() + ".docx";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.setContentDisposition(ContentDisposition.builder("attachment")
+                .filename(filename, StandardCharsets.UTF_8)
+                .build());
+
+        return ResponseEntity.ok().headers(headers).body(docxBytes);
     }
 }

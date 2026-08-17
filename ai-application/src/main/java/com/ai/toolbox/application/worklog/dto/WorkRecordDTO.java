@@ -20,6 +20,7 @@ public class WorkRecordDTO {
     private final LocalDate endDate;
     private final String dateType;
     private final String status;
+    private final String expireStatus;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 }

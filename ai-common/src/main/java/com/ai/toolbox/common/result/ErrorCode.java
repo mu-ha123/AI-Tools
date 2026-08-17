@@ -19,7 +19,10 @@ public enum ErrorCode {
     WORK_CATEGORY_NOT_FOUND("A03-WORK-001", "分类不存在"),
     WORK_CATEGORY_DEFAULT_DELETE("A03-WORK-002", "预置分类不可删除"),
     WORK_CATEGORY_DUPLICATE("A03-WORK-003", "分类名称已存在"),
-    WORK_RECORD_NOT_FOUND("A03-WORK-004", "记录不存在");
+    WORK_RECORD_NOT_FOUND("A03-WORK-004", "记录不存在"),
+    WORK_SUMMARY_NOT_FOUND("A03-WORK-005", "工作总结不存在"),
+    WORK_SUMMARY_NO_RECORDS("A03-WORK-006", "所选时间段无工作记录，无法生成总结"),
+    WORK_SUMMARY_DUPLICATE("A03-WORK-007", "该时间段的工作总结已存在");
 
     private final String code;
     private final String message;

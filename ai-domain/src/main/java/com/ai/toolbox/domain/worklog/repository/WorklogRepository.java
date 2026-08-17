@@ -2,6 +2,7 @@ package com.ai.toolbox.domain.worklog.repository;
 
 import com.ai.toolbox.domain.worklog.entity.WorkCategory;
 import com.ai.toolbox.domain.worklog.entity.WorkRecord;
+import com.ai.toolbox.domain.worklog.entity.WorkSummary;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -28,4 +29,14 @@ public interface WorklogRepository {
     WorkRecord saveRecord(WorkRecord record);
 
     void deleteRecord(Long id);
+
+    List<WorkSummary> findAllSummaries();
+
+    Optional<WorkSummary> findSummaryById(Long id);
+
+    Optional<WorkSummary> findSummaryByDateRange(LocalDate start, LocalDate end);
+
+    WorkSummary saveSummary(WorkSummary summary);
+
+    void deleteSummary(Long id);
 }

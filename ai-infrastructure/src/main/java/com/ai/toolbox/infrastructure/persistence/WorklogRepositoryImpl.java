@@ -2,11 +2,14 @@ package com.ai.toolbox.infrastructure.persistence;
 
 import com.ai.toolbox.domain.worklog.entity.WorkCategory;
 import com.ai.toolbox.domain.worklog.entity.WorkRecord;
+import com.ai.toolbox.domain.worklog.entity.WorkSummary;
 import com.ai.toolbox.domain.worklog.repository.WorklogRepository;
 import com.ai.toolbox.infrastructure.persistence.entity.WorkCategoryDO;
 import com.ai.toolbox.infrastructure.persistence.entity.WorkRecordDO;
+import com.ai.toolbox.infrastructure.persistence.entity.WorkSummaryDO;
 import com.ai.toolbox.infrastructure.persistence.repository.JpaWorkCategoryRepository;
 import com.ai.toolbox.infrastructure.persistence.repository.JpaWorkRecordRepository;
+import com.ai.toolbox.infrastructure.persistence.repository.JpaWorkSummaryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -22,6 +25,7 @@ public class WorklogRepositoryImpl implements WorklogRepository {
 
     private final JpaWorkCategoryRepository categoryRepo;
     private final JpaWorkRecordRepository recordRepo;
+    private final JpaWorkSummaryRepository summaryRepo;
 
     @Override
     public List<WorkCategory> findAllCategories() {
@@ -105,6 +109,39 @@ public class WorklogRepositoryImpl implements WorklogRepository {
         recordRepo.deleteById(id);
     }
 
+    @Override
+    public List<WorkSummary> findAllSummaries() {
+        return summaryRepo.findAllByOrderByCreatedAtDesc().stream()
+                .map(this::toSummaryDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Optional<WorkSummary> findSummaryById(Long id) {
+        return summaryRepo.findById(id).map(this::toSummaryDomain);
+    }
+
+    @Override
+    public Optional<WorkSummary> findSummaryByDateRange(LocalDate start, LocalDate end) {
+        return summaryRepo.findByStartDateAndEndDate(start, end).map(this::toSummaryDomain);
+    }
+
+    @Override
+    public WorkSummary saveSummary(WorkSummary summary) {
+        WorkSummaryDO entity = new WorkSummaryDO();
+        entity.setStartDate(summary.getStartDate());
+        entity.setEndDate(summary.getEndDate());
+        entity.setContent(summary.getContent());
+        entity.setCreatedAt(LocalDateTime.now());
+        WorkSummaryDO saved = summaryRepo.save(entity);
+        return toSummaryDomain(saved);
+    }
+
+    @Override
+    public void deleteSummary(Long id) {
+        summaryRepo.deleteById(id);
+    }
+
     private WorkCategory toCategoryDomain(WorkCategoryDO entity) {
         return WorkCategory.restore(entity.getId(), entity.getName(), entity.getColor(),
                 entity.getSortOrder(), entity.isDefault());
@@ -114,5 +151,10 @@ public class WorklogRepositoryImpl implements WorklogRepository {
         return WorkRecord.restore(entity.getId(), entity.getCategoryId(), entity.getTitle(),
                 entity.getDescription(), entity.getRecordDate(), entity.getEndDate(), entity.getDateType(),
                 entity.getStatus(), entity.getCreatedAt(), entity.getUpdatedAt());
+    }
+
+    private WorkSummary toSummaryDomain(WorkSummaryDO entity) {
+        return WorkSummary.restore(entity.getId(), entity.getStartDate(), entity.getEndDate(),
+                entity.getContent(), entity.getCreatedAt());
     }
 }
